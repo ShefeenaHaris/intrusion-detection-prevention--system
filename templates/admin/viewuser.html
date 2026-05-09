@@ -1,0 +1,56 @@
+{% extends 'admin/adminhome.html' %}
+{% block body %}
+<body>
+  <div class="container mt-5">
+    <h2 class="mb-4">Registered Users</h2>
+    <table id="registrationTable" class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>#</th>
+            <th>Photo</th>
+
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone No</th>
+          <th>Place</th>
+          <th>Pin Code</th>
+          <th>Post</th>
+          <th>LogAttacks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Sample Data Row -->
+
+
+        {% for i in data %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+            <td><img src="{{ i.photo }}" class="img-thumbnail" width="50" /></td>
+          <td>{{ i.name }}</td>
+          <td>{{ i.email_id }}</td>
+          <td>{{ i.phone_no }}</td>
+          <td>{{ i.place }}</td>
+          <td>{{ i.pin_code }}</td>
+          <td>{{ i.post }}</td>
+          <td>
+              <a href="/myapp/admin_view_logs/{{ i.id }}" class="btn btn-success">Logs</a>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Add more rows dynamically from backend -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $('#registrationTable').DataTable();
+    });
+  </script>
+</body>
+{% endblock %}

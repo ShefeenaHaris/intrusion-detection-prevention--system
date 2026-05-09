@@ -1,0 +1,65 @@
+
+{% extends "Expert/experthome.html" %}
+{% block body %}
+{#<!DOCTYPE html>#}
+{#<html lang="en">#}
+{#<head>#}
+{#  <meta charset="UTF-8">#}
+{#  <title>Registration Data Table</title>#}
+{#  <!-- Bootstrap CSS -->#}
+{#  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">#}
+{#  <!-- DataTables CSS -->#}
+{#  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">#}
+{#</head>#}
+{#<body>#}
+  <div class="container mt-5">
+    <h2 class="mb-4">View videos</h2>
+    <table id="registrationTable" class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>File</th>
+            <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in data %}
+        <!-- Sample Data Row -->
+        <tr>
+            <td>{{ forloop.counter }}</td>
+          <td>{{ i.title }}</td>
+          <td>
+
+
+              <video controls width="800px" height="450px" src="{{ i.video  }}">
+
+              </video>
+
+
+          </td>
+
+          <td>
+              <a href="/myapp/expert_edit_video/{{ i.id }}" class="btn btn-sm btn-primary">Edit</a>
+              <a href="/myapp/delete_Video/{{ i.id }}" class="btn btn-sm btn-primary">Delete</a>
+
+
+          </td>
+        </tr>
+         {% endfor %}
+
+        <!-- Add more rows dynamically from backend -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $('#registrationTable').DataTable();
+    });
+  </script>
+{% endblock %}
