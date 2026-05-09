@@ -1,0 +1,614 @@
+// import 'dart:convert';
+//
+// //import 'package:easy_search_bar/easy_search_bar.dart';
+// import 'package:flutter/material.dart';
+// import 'sendcomplaint.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:http/http.dart' as http;
+//
+// //import 'home.dart';
+// import 'newhome.dart';
+//
+//
+//
+// class viewcomplaint extends StatefulWidget {
+//   const viewcomplaint({super.key, required this.title});
+//   final String title;
+//
+//   @override
+//   State<viewcomplaint> createState() => _viewcomplaintState();
+// }
+//
+// class _viewcomplaintState extends State<viewcomplaint> {
+//   List<Map<String, dynamic>> users = [];
+//   List<Map<String, dynamic>> filteredUsers = [];
+//   List<String> nameSuggestions = [];
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     viewUsers("");
+//   }
+//
+//   Future<void> viewUsers(String searchValue) async {
+//     try {
+//       SharedPreferences sh = await SharedPreferences.getInstance();
+//       String urls = sh.getString('url') ?? '';
+//       String img = sh.getString('img_url') ?? '';
+//       String lid = sh.getString('lid') ?? '';
+//       String apiUrl = '$urls/view_reply/';
+//
+//       var response = await http.post(Uri.parse(apiUrl), body: {
+//         'lid':lid
+//       });
+//       var jsonData = json.decode(response.body);
+//
+//       if (jsonData['status'] == 'ok') {
+//         List<Map<String, dynamic>> tempList = [];
+//         for (var item in jsonData['data']) {
+//           tempList.add({
+//             'id': item['id'],
+//             'date': item['date'],
+//             'complaint': item['complaint'],
+//             'reply': item['reply'],
+//             'status': item['status'],
+//           });
+//         }
+//         setState(() {
+//           users = tempList;
+//           filteredUsers = tempList
+//               .where((user) =>
+//               user['name']
+//                   .toString()
+//                   .toLowerCase()
+//                   .contains(searchValue.toLowerCase()))
+//               .toList();
+//           nameSuggestions = users.map((e) => e['name'].toString()).toSet().toList();
+//         });
+//       }
+//     } catch (e) {
+//       print("Error fetching users: $e");
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return WillPopScope(
+//         onWillPop: () async {
+//       Navigator.pushReplacement(
+//         context,
+//         MaterialPageRoute(builder: (context) => const BankingDashboard()),
+//       );
+//       return false; // Prevent default pop
+//     },
+//     child:Scaffold(
+//       appBar: AppBar(title: Text("Complaints"),),
+//       floatingActionButton: FloatingActionButton(onPressed: () {
+//
+//         Navigator.push(
+//           context,
+//           MaterialPageRoute(builder: (context) => Sendcomplaintpage(title: '')),
+//         );
+//
+//       },child: Icon(Icons.add),),
+//       body: ListView.builder(
+//         shrinkWrap: true,
+//         physics: BouncingScrollPhysics(),
+//         itemCount: filteredUsers.length,
+//         itemBuilder: (context, index) {
+//           final user = filteredUsers[index];
+//           return Card(
+//             margin: const EdgeInsets.all(10),
+//             elevation: 5,
+//             child: ListTile(
+//
+//               subtitle: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Text("ID: ${user['id']}"),
+//                   Text("Date: ${user['date']}"),
+//                   Text("Complaint: ${user['complaint']}"),
+//                   Text("Reply: ${user['reply']}"),
+//                   Text("Status: ${user['status']}"),
+//
+//                 ],
+//               ),
+//             ),
+//           );
+//         },
+//       ),
+//     ));
+//   }
+// }
+import 'dart:convert';
+
+//import 'package:easy_search_bar/easy_search_bar.dart';
+import 'package:flutter/material.dart';
+import 'sendcomplaint.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+
+//import 'home.dart';
+import 'newhome.dart';
+
+class viewcomplaint extends StatefulWidget {
+  const viewcomplaint({super.key, required this.title});
+  final String title;
+
+  @override
+  State<viewcomplaint> createState() => _viewcomplaintState();
+}
+
+class _viewcomplaintState extends State<viewcomplaint> {
+  List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> filteredUsers = [];
+  List<String> nameSuggestions = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    viewUsers("");
+  }
+
+  Future<void> viewUsers(String searchValue) async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      SharedPreferences sh = await SharedPreferences.getInstance();
+      String urls = sh.getString('url') ?? '';
+      String img = sh.getString('img_url') ?? '';
+      String lid = sh.getString('lid') ?? '';
+      String apiUrl = '$urls/view_reply/';
+
+      var response = await http.post(Uri.parse(apiUrl), body: {
+        'lid': lid
+      });
+      var jsonData = json.decode(response.body);
+
+      if (jsonData['status'] == 'ok') {
+        List<Map<String, dynamic>> tempList = [];
+        for (var item in jsonData['data']) {
+          tempList.add({
+            'id': item['id'],
+            'date': item['date'],
+            'complaint': item['complaint'],
+            'reply': item['reply'],
+            'status': item['status'],
+          });
+        }
+        setState(() {
+          users = tempList;
+          filteredUsers = tempList
+              .where((user) =>
+              user['name']
+                  .toString()
+                  .toLowerCase()
+                  .contains(searchValue.toLowerCase()))
+              .toList();
+          nameSuggestions = users.map((e) => e['name'].toString()).toSet().toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching users: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch(status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'resolved':
+      case 'completed':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch(status.toLowerCase()) {
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'resolved':
+      case 'completed':
+        return Icons.check_circle;
+      case 'rejected':
+        return Icons.cancel;
+      default:
+        return Icons.help;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BankingDashboard()),
+        );
+        return false; // Prevent default pop
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "My Complaints",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: const Color(0xFF2A4B7C), // Deep blue color
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(20),
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                viewUsers("");
+              },
+            ),
+          ],
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF2A4B7C).withOpacity(0.05),
+                Colors.white,
+              ],
+            ),
+          ),
+          child: isLoading
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF2A4B7C)),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  "Loading your complaints...",
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          )
+              : filteredUsers.isEmpty
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.inbox,
+                    size: 60,
+                    color: Color(0xFF2A4B7C),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "No Complaints Yet",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2A4B7C),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Tap the + button to file a complaint",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Sendcomplaintpage(title: '')),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text("File Complaint"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2A4B7C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+              : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            itemCount: filteredUsers.length,
+            itemBuilder: (context, index) {
+              final user = filteredUsers[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white,
+                          Color(0xFFF8F9FA),
+                        ],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header Row with ID and Status
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  "#${user['id']}",
+                                  style: const TextStyle(
+                                    color: Color(0xFF2A4B7C),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(user['status']).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _getStatusIcon(user['status']),
+                                      size: 16,
+                                      color: _getStatusColor(user['status']),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      user['status'],
+                                      style: TextStyle(
+                                        color: _getStatusColor(user['status']),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Date
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: Color(0xFF2A4B7C),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Date",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    user['date'],
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Complaint Section
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.description,
+                                      size: 18,
+                                      color: Color(0xFF2A4B7C),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Complaint",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2A4B7C),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  user['complaint'],
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Reply Section
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A4B7C).withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF2A4B7C).withOpacity(0.2),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.reply,
+                                      size: 18,
+                                      color: Color(0xFF2A4B7C),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      "Reply",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2A4B7C),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (user['reply'].toString().isNotEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Text(
+                                          "Responded",
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  user['reply'].toString().isEmpty ? "No reply yet" : user['reply'],
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: user['reply'].toString().isEmpty ? Colors.grey : Colors.black87,
+                                    fontStyle: user['reply'].toString().isEmpty ? FontStyle.italic : FontStyle.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const Sendcomplaintpage(title: '')),
+            );
+          },
+          backgroundColor: const Color(0xFF2A4B7C),
+          child: const Icon(Icons.add, color: Colors.white),
+          elevation: 8,
+        ),
+      ),
+    );
+  }
+}
