@@ -1,0 +1,164 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_rating/flutter_rating.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+import 'login.dart';
+import 'newhome.dart';
+// import 'home.dart';
+// import 'newhome.dart';
+
+
+void main() {
+  runApp( Appreviewpage(title: '',));
+}
+
+class Appreviewpage extends StatefulWidget {
+  const Appreviewpage({super.key, required this.title});
+
+  final String title;
+  @override
+  State<Appreviewpage> createState() => _AppreviewpageState();
+
+}
+class _AppreviewpageState extends State<Appreviewpage> {
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _appreviewcontroller = TextEditingController();
+  final TextEditingController _appratingcontroller = TextEditingController();
+
+
+  File? _selectedImage;
+  Future<void> _chooseImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+    else {
+      Fluttertoast.showToast(msg: "No image selected");
+    }
+  }
+
+  Future<void> _sendData() async {
+    String review = _appreviewcontroller.text;
+
+
+
+
+    SharedPreferences sh = await SharedPreferences.getInstance();
+    String? url = sh.getString('url');
+    String? lid = sh.getString('lid');
+
+    if (url == null) {
+      Fluttertoast.showToast(msg: "Server URL not found.");
+      return;
+    }
+
+    final uri = Uri.parse('$url/send_app_review/');
+    var request = http.MultipartRequest('POST', uri);
+    request.fields['review'] = review;
+    request.fields['rating'] = rating.toString();
+    request.fields['lid'] = lid.toString();
+
+
+    try {
+      var response = await request.send();
+      var respStr = await response.stream.bytesToString();
+      var data = jsonDecode(respStr);
+
+      if (response.statusCode == 200 && data['status'] == 'ok') {
+        Fluttertoast.showToast(msg: "Submitted successfully.");
+      } else {
+        Fluttertoast.showToast(msg: "Submission failed.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error: $e");
+    }
+  }
+
+  double rating=1;
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BankingDashboard()),
+        );
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.title),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+
+                StarRating(
+                  size: 40.0,
+                  rating: rating,
+                  color: Colors.orange,
+                  borderColor: Colors.grey,
+                  allowHalfRating: true,
+                  starCount: 5,
+                  onRatingChanged: (rating) => setState(() {
+                    this.rating = rating;
+                  }),
+                ),
+
+                TextFormField(
+                  controller: _appreviewcontroller,
+                  decoration: const InputDecoration(
+                    labelText: 'Review Here',
+                    border: OutlineInputBorder(),
+                  ),
+                  // validator: (value) {
+                  //   if (value == null || value.trim().isEmpty) {
+                  //     return 'Name is required';
+                  //   }
+                  //   return null;
+                  // },
+                ),
+
+
+
+
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _sendData();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => BankingDashboard()),
+                      );
+                    } else {
+                      Fluttertoast.showToast(msg: "Please fix errors in the form");
+                    }
+                  },
+                  child: const Text("Submit"),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
