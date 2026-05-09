@@ -1,0 +1,614 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+
+import 'editprofile.dart';
+import 'newhome.dart';
+
+void main() {
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: viewprofile(title: 'My Profile'),
+  ));
+}
+
+class viewprofile extends StatefulWidget {
+  const viewprofile({super.key, required this.title});
+  final String title;
+
+  @override
+  State<viewprofile> createState() => _viewprofileState();
+}
+
+class _viewprofileState extends State<viewprofile> {
+  _viewprofileState() {
+    _sendData();
+  }
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  String name_ = "";
+  String emailid_ = "";
+  String phoneno_ = "";
+  String place_ = "";
+  String pincode_ = "";
+  String post_ = "";
+  String photo_ = "";
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _sendData();
+  }
+
+  Future<void> _sendData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      SharedPreferences sh = await SharedPreferences.getInstance();
+      String? url = sh.getString('url');
+      String lid = sh.getString('lid').toString();
+      String img = sh.getString('img_url').toString();
+
+      if (url == null) {
+        Fluttertoast.showToast(msg: "Server URL not found.");
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final uri = Uri.parse('$url/user_profile/');
+      var request = http.MultipartRequest('POST', uri);
+      request.fields['lid'] = lid;
+
+      var response = await request.send();
+      var respStr = await response.stream.bytesToString();
+      var data = jsonDecode(respStr);
+
+      if (response.statusCode == 200 && data['status'] == 'ok') {
+        String name = data["name"];
+        String email_id = data["email_id"];
+        String phone_no = data["phone_no"];
+        String place = data["place"];
+        String pin_code = data["pin_code"];
+        String photo = img + data["photo"];
+        String post = data["post"];
+
+        setState(() {
+          name_ = name;
+          emailid_ = email_id;
+          phoneno_ = phone_no;
+          place_ = place;
+          pincode_ = pin_code;
+          photo_ = photo;
+          post_ = post;
+          isLoading = false;
+        });
+
+        Fluttertoast.showToast(msg: "Profile Loaded Successfully.");
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(msg: "Failed to load profile.");
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(msg: "Error: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BankingDashboard()),
+        );
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "My Profile",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: const Color(0xFF2A4B7C),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(20),
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                _sendData();
+              },
+            ),
+          ],
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF2A4B7C).withOpacity(0.05),
+                Colors.white,
+                Colors.white,
+              ],
+            ),
+          ),
+          child: isLoading
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2A4B7C)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  "Loading profile...",
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          )
+              : ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Profile Header Card
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Profile Image with edit indicator
+                    Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF2A4B7C),
+                              width: 3,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: const Color(0xFF2A4B7C).withOpacity(0.1),
+                            backgroundImage: photo_.isNotEmpty
+                                ? NetworkImage(photo_)
+                                : null,
+                            child: photo_.isEmpty
+                                ? Text(
+                              name_.isNotEmpty ? name_[0].toUpperCase() : "U",
+                              style: const TextStyle(
+                                fontSize: 40,
+                                color: Color(0xFF2A4B7C),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2A4B7C),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      name_.isEmpty ? "User Name" : name_,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2A4B7C),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.verified_user,
+                            size: 16,
+                            color: const Color(0xFF2A4B7C).withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            "Active Member",
+                            style: TextStyle(
+                              color: Color(0xFF2A4B7C),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Stats Cards Row
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: _buildStatCard(
+              //         icon: Icons.email_outlined,
+              //         value: emailid_.isNotEmpty ? "1" : "0",
+              //         label: "Emails",
+              //       ),
+              //     ),
+              //     const SizedBox(width: 12),
+              //     Expanded(
+              //       child: _buildStatCard(
+              //         icon: Icons.phone_outlined,
+              //         value: phoneno_.isNotEmpty ? "1" : "0",
+              //         label: "Contact",
+              //       ),
+              //     ),
+              //     const SizedBox(width: 12),
+              //     Expanded(
+              //       child: _buildStatCard(
+              //         icon: Icons.location_on_outlined,
+              //         value: place_.isNotEmpty ? "1" : "0",
+              //         label: "Address",
+              //       ),
+              //     ),
+              //   ],
+              // ),
+
+              const SizedBox(height: 16),
+
+              // Contact Information Section
+              _buildSectionCard(
+                title: "Contact Information",
+                icon: Icons.contact_mail_outlined,
+                children: [
+                  _buildInfoTile(
+                    icon: Icons.email_outlined,
+                    label: "Email Address",
+                    value: emailid_,
+                    color: Colors.blue,
+                  ),
+                  const Divider(height: 1, indent: 60),
+                  _buildInfoTile(
+                    icon: Icons.phone_outlined,
+                    label: "Phone Number",
+                    value: phoneno_,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Address Information Section
+              _buildSectionCard(
+                title: "Address Details",
+                icon: Icons.home_outlined,
+                children: [
+                  _buildInfoTile(
+                    icon: Icons.place_outlined,
+                    label: "Place",
+                    value: place_,
+                  ),
+                  const Divider(height: 1, indent: 60),
+                  _buildInfoTile(
+                    icon: Icons.location_city_outlined,
+                    label: "Post",
+                    value: post_,
+                  ),
+                  const Divider(height: 1, indent: 60),
+                  _buildInfoTile(
+                    icon: Icons.pin_drop_outlined,
+                    label: "Pincode",
+                    value: pincode_,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Edit Profile Button
+              Container(
+                width: double.infinity,
+                height: 55,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2A4B7C).withOpacity(0.3),
+                      spreadRadius: 1,
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const editprofile(title: 'Edit Profile'),
+                      ),
+                    ).then((value) {
+                      if (value == true) {
+                        _sendData();
+                      }
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2A4B7C),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.edit, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        "Edit Profile",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A4B7C).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF2A4B7C),
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2A4B7C),
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A4B7C).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: const Color(0xFF2A4B7C),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2A4B7C),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A4B7C).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: const Color(0xFF2A4B7C).withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value.isEmpty ? "Not provided" : value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: value.isEmpty ? Colors.grey[400] : (color ?? Colors.black87),
+                    fontWeight: value.isEmpty ? FontWeight.normal : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (value.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                size: 16,
+                color: Colors.green,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
