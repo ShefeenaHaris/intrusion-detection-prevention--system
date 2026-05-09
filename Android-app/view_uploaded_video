@@ -1,0 +1,722 @@
+// import 'dart:convert';
+// import 'package:flutter/cupertino.dart';
+// import 'package:flutter/material.dart';
+// import 'newhome.dart';
+// import 'view_expert.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:video_player/video_player.dart';
+// import 'package:url_launcher/url_launcher.dart'; // Add url_launcher import
+//
+// void main() {
+//   runApp(const MyApp());
+// }
+//
+// class MyApp extends StatelessWidget {
+//   const MyApp({Key? key}) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Placeholder();
+//   }
+// }
+//
+// class User_View_New_Video extends StatefulWidget {
+//   const User_View_New_Video({Key? key}) : super(key: key);
+//
+//   @override
+//   State<User_View_New_Video> createState() => _User_View_New_VideoState();
+// }
+//
+// class _User_View_New_VideoState extends State<User_View_New_Video> {
+//   _User_View_New_VideoState() {
+//     view_notification();
+//   }
+//
+//   List<String> id_ = <String>[];
+//   List<String> title_ = <String>[];
+//   List<String> video_ = <String>[];
+//   List<String> name_ = <String>[];
+//
+//   Future<void> view_notification() async {
+//     List<String> id = <String>[];
+//     List<String> title = <String>[];
+//     List<String> video = <String>[];
+//     List<String> name = <String>[];
+//
+//     try {
+//       SharedPreferences sh = await SharedPreferences.getInstance();
+//       String urls = sh.getString('url').toString();
+//       String e_id = sh.getString('eid').toString();
+//       String url = '$urls/user_view_video/';
+//       var data = await http.post(Uri.parse(url), body: {
+//         'eid': e_id,
+//       });
+//       var jsondata = json.decode(data.body);
+//       String statuss = jsondata['status'];
+//
+//       var arr = jsondata["data"];
+//
+//       for (int i = 0; i < arr.length; i++) {
+//         id.add(arr[i]['id'].toString());
+//         title.add(arr[i]['title'].toString());
+//         name.add(arr[i]['name'].toString());
+//         video.add(sh.getString("img_url").toString() + arr[i]['video']);
+//       }
+//
+//       setState(() {
+//         id_ = id;
+//         title_ = title;
+//         name_ = name;
+//         video_ = video;
+//       });
+//
+//       print(statuss);
+//     } catch (e) {
+//       print("Error ------------------- " + e.toString());
+//     }
+//   }
+//
+//   // Function to launch URL using url_launcher
+//   Future<void> _launchVideo(String videoUrl) async {
+//     if (await canLaunch(videoUrl)) {
+//       await launch(videoUrl); // Launch the video in the default browser or player
+//     } else {
+//       throw 'Could not launch $videoUrl';
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return WillPopScope(
+//       onWillPop: () async {
+//         Navigator.push(
+//           context,
+//           MaterialPageRoute(
+//             builder: (context) => viewexpert(title: '',),
+//           ),
+//         );
+//         return true;
+//       },
+//       child: Scaffold(
+//         appBar: AppBar(
+//           backgroundColor: Colors.redAccent,
+//           title: Text("Videos"),
+//
+//         ),
+//         body:video_.isEmpty?Center(child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Text("No Videos Found")
+//           ],
+//         )): ListView.builder(
+//           physics: const BouncingScrollPhysics(),
+//           itemCount: id_.length,
+//           itemBuilder: (BuildContext context, int index) {
+//             return Padding(
+//               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+//               child: Card(
+//                 shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(12)
+//                 ),
+//                 elevation: 4,
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     // Video thumbnail or player section
+//                     ClipRRect(
+//                       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+//                       child: Container(
+//                         color: Colors.black,
+//                         width: double.infinity,
+//                         height: 200,
+//                         child: VideoPlayerWidget(videoUrl: video_[index]),
+//                       ),
+//                     ),
+//                     // Video info section
+//                     Padding(
+//                       padding: const EdgeInsets.all(10),
+//                       child: Row(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           const CircleAvatar(
+//                             backgroundColor: Colors.blue,
+//                             child: Icon(Icons.person, color: Colors.white),
+//                           ),
+//                           const SizedBox(width: 10),
+//                           Expanded(
+//                             child: Column(
+//                               crossAxisAlignment: CrossAxisAlignment.start,
+//                               children: [
+//                                 Text(
+//                                   name_[index],
+//                                   style: const TextStyle(
+//                                     fontSize: 16,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                   maxLines: 2,
+//                                   overflow: TextOverflow.ellipsis,
+//                                 ),
+//                                 const SizedBox(height: 4),
+//                                 Text(
+//                                   title_[index],
+//                                   style: TextStyle(
+//                                     color: Colors.grey.shade600,
+//                                     fontSize: 13,
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                           IconButton(
+//                             icon: const Icon(Icons.more_vert),
+//                             onPressed: () {
+//                               // Additional options
+//                             },
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                     // Button to open video externally
+//                     Padding(
+//                       padding: const EdgeInsets.only(left: 10, bottom: 10),
+//                       child: ElevatedButton.icon(
+//                         style: ElevatedButton.styleFrom(
+//                           backgroundColor: Colors.blue.shade700,
+//                           shape: RoundedRectangleBorder(
+//                             borderRadius: BorderRadius.circular(8),
+//                           ),
+//                         ),
+//                         onPressed: () {
+//                           _launchVideo(video_[index]);
+//                         },
+//                         icon: const Icon(Icons.open_in_new, color: Colors.white),
+//                         label: const Text(
+//                           "Open Video",
+//                           style: TextStyle(color: Colors.white),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             );
+//           },
+//         ),
+//
+//         // body: Container(
+//         //   decoration: const BoxDecoration(
+//         //     image: DecorationImage(
+//         //         image: AssetImage('assets/images/cat.jpg'), fit: BoxFit.cover),
+//         //   ),
+//         //   child: ListView.builder(
+//         //     physics: BouncingScrollPhysics(),
+//         //     itemCount: id_.length,
+//         //     itemBuilder: (BuildContext context, int index) {
+//         //       return ListTile(
+//         //         onLongPress: () {
+//         //           print("long press" + index.toString());
+//         //         },
+//         //         title: Padding(
+//         //           padding: const EdgeInsets.all(8.0),
+//         //           child: Column(
+//         //             children: [
+//         //               Card(
+//         //                 child: Row(
+//         //                   children: [
+//         //                     Column(
+//         //                       children: [
+//         //                         Text("Title :${title_[index]}"),
+//         //                         // Image(image: NetworkImage(photo1_[index]), height: 100, width: 100),
+//         //                         Padding(
+//         //                           padding: const EdgeInsets.all(4),
+//         //                           child: Row(
+//         //                             children: [
+//         //                               SizedBox(height: 20, width: 20),
+//         //                               Padding(
+//         //                                 padding: const EdgeInsets.all(5),
+//         //                                 child: Container(
+//         //                                   width: 200,
+//         //                                   child: VideoPlayerWidget(videoUrl: video_[index]),
+//         //                                 ),
+//         //                               ),
+//         //                             ],
+//         //                           ),
+//         //                         ),
+//         //                         // Button to launch the video in the default video player or browser
+//         //                         ElevatedButton(
+//         //                           onPressed: () {
+//         //                             _launchVideo(video_[index],);
+//         //                           },
+//         //                           child: Text("Open Video in Player/Browser"),
+//         //                         ),
+//         //                       ],
+//         //                     ),
+//         //                   ],
+//         //                 ),
+//         //                 elevation: 8,
+//         //                 margin: EdgeInsets.all(10),
+//         //               ),
+//         //             ],
+//         //           ),
+//         //         ),
+//         //       );
+//         //     },
+//         //   ),
+//         // ),
+//       ),
+//     );
+//   }
+// }
+//
+// class VideoPlayerWidget extends StatefulWidget {
+//   final String videoUrl;
+//
+//   const VideoPlayerWidget({required this.videoUrl});
+//
+//   @override
+//   _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+// }
+//
+// class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+//   late VideoPlayerController _controller;
+//
+//   bool isVideoPlaying = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = VideoPlayerController.network(widget.videoUrl)
+//       ..initialize().then((_) {
+//         setState(() {});
+//       });
+//   }
+//
+//   void toggleVideoPlayback() {
+//     setState(() {
+//       if (_controller.value.isPlaying) {
+//         _controller.pause();
+//         isVideoPlaying = false;
+//       } else {
+//         _controller.play();
+//         isVideoPlaying = true;
+//       }
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: toggleVideoPlayback,
+//       child: Stack(
+//         alignment: Alignment.center,
+//         children: [
+//           AspectRatio(
+//             aspectRatio: _controller.value.aspectRatio,
+//             child: VideoPlayer(_controller),
+//           ),
+//           if (!isVideoPlaying)
+//             Icon(
+//               Icons.play_arrow,
+//               size: 64,
+//               color: Colors.white,
+//             ),
+//         ],
+//       ),
+//     );
+//   }
+//
+//   @override
+//   void dispose() {
+//     super.dispose();
+//     _controller.dispose();
+//   }
+// }
+
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'newhome.dart';
+import 'view_expert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: User_View_New_Video(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class User_View_New_Video extends StatefulWidget {
+  const User_View_New_Video({Key? key}) : super(key: key);
+
+  @override
+  State<User_View_New_Video> createState() => _User_View_New_VideoState();
+}
+
+class _User_View_New_VideoState extends State<User_View_New_Video> {
+  List<String> id_ = <String>[];
+  List<String> title_ = <String>[];
+  List<String> video_ = <String>[];
+  List<String> name_ = <String>[];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    view_notification();
+  }
+
+  Future<void> view_notification() async {
+    List<String> id = <String>[];
+    List<String> title = <String>[];
+    List<String> video = <String>[];
+    List<String> name = <String>[];
+
+    try {
+      SharedPreferences sh = await SharedPreferences.getInstance();
+      String urls = sh.getString('url').toString();
+      String e_id = sh.getString('eid').toString();
+      String url = '$urls/user_view_video/';
+
+      var data = await http.post(
+        Uri.parse(url),
+        body: {
+          'eid': e_id,
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      var jsondata = json.decode(data.body);
+      var arr = jsondata["data"];
+
+      String baseUrl = sh.getString("img_url").toString();
+
+      for (int i = 0; i < arr.length; i++) {
+        id.add(arr[i]['id'].toString());
+        title.add(arr[i]['title'].toString());
+        name.add(arr[i]['name'].toString());
+
+        // Construct full video URL
+        // String fullVideoUrl = arr[i]['video'];
+        String videoPath = arr[i]['video'];
+        String fullVideoUrl = baseUrl + videoPath;
+
+        // Fix URL formatting issues
+        if (fullVideoUrl.startsWith('http:/') && !fullVideoUrl.startsWith('http://')) {
+          fullVideoUrl = fullVideoUrl.replaceFirst('http:/', 'http://');
+        }
+        if (fullVideoUrl.startsWith('https:/') && !fullVideoUrl.startsWith('https://')) {
+          fullVideoUrl = fullVideoUrl.replaceFirst('https:/', 'https://');
+        }
+
+        video.add(fullVideoUrl);
+      }
+
+      setState(() {
+        id_ = id;
+        title_ = title;
+        name_ = name;
+        video_ = video;
+        isLoading = false;
+      });
+
+    } catch (e) {
+      print("Error ------------------- " + e.toString());
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // Method 1: Launch in browser
+  Future<void> _launchInBrowser(String videoUrl) async {
+    final Uri url = Uri.parse(videoUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication, // This forces browser
+      );
+    }
+  }
+
+  // Method 2: Launch with specific intent for Android
+  Future<void> _launchWithIntent(String videoUrl) async {
+    final Uri url = Uri.parse(videoUrl);
+    // For Android, we can specify we want to view the video
+    await launchUrl(
+      url,
+      mode: LaunchMode.externalNonBrowserApplication, // Try to find a video player
+    );
+  }
+
+  // Method 3: Show dialog with options
+  void _showPlayOptions(String videoUrl) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Play Video',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              // ListTile(
+              //   leading: const Icon(Icons.open_in_browser, color: Colors.blue),
+              //   title: const Text('Open in Browser'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _launchInBrowser(videoUrl);
+              //   },
+              // ),
+              ListTile(
+                leading: const Icon(Icons.video_library, color: Colors.blue),
+                title: const Text('Open in Video Player'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _launchWithIntent(videoUrl);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => viewexpert(title: ''),
+          ),
+        );
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Color(0xFF2A4B7C),
+          title: const Text("Videos"),
+          elevation: 0,
+        ),
+        body: isLoading
+            ? const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2A4B7C)),
+          ),
+        )
+            : video_.isEmpty
+            ? Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.video_library,
+                size: 80,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "No Videos Found",
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        )
+            : ListView.builder(
+          physics: const BouncingScrollPhysics(),
+          itemCount: id_.length,
+          itemBuilder: (BuildContext context, int index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Video thumbnail placeholder with play button
+                    InkWell(
+                      onTap: () => _showPlayOptions(video_[index]),
+                      child: Container(
+                        height: 200,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          image: DecorationImage(
+                            image: NetworkImage(video_[index]),
+
+                            fit: BoxFit.cover,
+                            onError: (exception, stackTrace) {
+                              // If video can't be used as image, show gradient
+                            },
+                          ),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.7),
+                              ],
+                            ),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF2A4B7C),
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Video info section
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: Colors.blue.shade100,
+                                child: Text(
+                                  name_[index].isNotEmpty
+                                      ? name_[index][0].toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: Color(0xFF2A4B7C),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name_[index],
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      title_[index],
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 14,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Play buttons
+                          Row(
+                            children: [
+                              // Expanded(
+                              //   child: ElevatedButton.icon(
+                              //     style: ElevatedButton.styleFrom(
+                              //       backgroundColor: Colors.redAccent,
+                              //       foregroundColor: Colors.white,
+                              //       padding: const EdgeInsets.symmetric(vertical: 12),
+                              //       shape: RoundedRectangleBorder(
+                              //         borderRadius: BorderRadius.circular(8),
+                              //       ),
+                              //     ),
+                              //     onPressed: () {
+                              //       _launchInBrowser(video_[index]);
+                              //     },
+                              //     icon: const Icon(Icons.open_in_browser),
+                              //     label: const Text("Browser"),
+                              //   ),
+                              // ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF2A4B7C),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _launchWithIntent(video_[index]);
+                                  },
+                                  icon: const Icon(Icons.play_arrow),
+                                  label: const Text("Player"),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+
