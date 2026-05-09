@@ -1,0 +1,479 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intrusion/users/view_Complaint.dart';
+import '../change_password.dart';
+import 'appreview.dart';
+import 'sendcomplaint.dart';
+import 'view%20profile.dart';
+import 'view_expert.dart';
+import 'view_logs.dart';
+import 'login.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
+
+import 'Chat bot.dart';
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  Workmanager().initialize(
+
+    // The top level function, aka callbackDispatcher
+      callbackDispatcher,
+
+      // If enabled it will post a notification whenever
+      // the task is running. Handy for debugging tasks
+      isInDebugMode: true);
+// Periodic task registration
+  Workmanager().registerPeriodicTask(
+    "2",
+
+    //This is the value that will be
+    // returned in the callbackDispatcher
+    "simplePeriodicTask",
+
+    // When no frequency is provided
+    // the default 15 minutes is set.
+    // Minimum frequency is 15 min.
+    // Android will automatically change
+    // your frequency to 15 min
+    // if you have configured a lower frequency.
+    frequency: Duration(seconds: 15),
+  );
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: BankingDashboard(),
+  ));
+}
+void callbackDispatcher(String message) {
+  print("hiii");
+
+  // Workmanager().executeTask((task, inputData) {
+  // initialise the plugin of flutterlocalnotifications.
+  FlutterLocalNotificationsPlugin flip =
+  new FlutterLocalNotificationsPlugin();
+
+  // app_icon needs to be a added as a drawable
+  // resource to the Android head project.
+  var android = new AndroidInitializationSettings('@mipmap/ic_launcher');
+  // var IOS = new IOSInitializationSettings();
+
+  // initialise settings for both Android and iOS device.
+  var settings = new InitializationSettings(android: android);
+  flip.initialize(settings);
+  _showNotificationWithDefaultSound(flip, message);
+  // return Future.value(true);
+  // });
+}
+
+Future _showNotificationWithDefaultSound(flip,String message) async {
+// Show a notification after every 15 minute with the first
+// appearance happening a minute after invoking the method
+  var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your channel id', 'your channel name',
+      importance: Importance.max, priority: Priority.high);
+
+// initialise channel platform for both Android and iOS device.
+  var platformChannelSpecifics =
+  new NotificationDetails(android: androidPlatformChannelSpecifics);
+  await flip.show(
+      0,
+      'ALERT',
+      message,
+      platformChannelSpecifics,
+      payload: 'Default_Sound');
+}
+
+class BankingDashboard extends StatefulWidget {
+  const BankingDashboard({super.key});
+
+  @override
+  State<BankingDashboard> createState() => _BankingDashboardState();
+}
+
+class _BankingDashboardState extends State<BankingDashboard> {
+  static const primaryRed = Color(0xFF2A4B7C);
+  static const accentRed = Color(0xFFE573B0);
+  Timer? _ti;
+  String c="";
+  a() async {
+    SharedPreferences sh=await SharedPreferences.getInstance();
+    setState(() {
+      c=sh.getString("c").toString();
+    });
+  }
+  _BankingDashboardState(){
+    _ti=Timer.periodic(Duration(seconds: 10), (timer) {
+      getdata();
+    },);
+    a();
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          // 🔹 Header
+          Container(
+            height: 160,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryRed, accentRed],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(25),
+                bottomRight: Radius.circular(25),
+              ),
+            ),
+            padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Greeting
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      "Welcome 👋",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    Text(
+                      "User Dashboard",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Logout
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white, size: 28),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyLoginPage(title: '')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // 🔹 Stats Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children:  [
+                Expanded(
+                  child: StatCard(
+                    title: "Blocked Threats",
+                    value: c,
+                    color: primaryRed,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: StatCard(
+                    title: "System Status",
+                    value: "Secure",
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 25),
+
+          // 🔹 Sections
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              children: [
+                SectionTile(
+                  icon: Icons.person,
+                  title: "Profile",
+                  subtitle: "View and edit your details",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => viewprofile(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.security,
+                  title: "View Experts",
+                  subtitle: "Connect with security experts",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => viewexpert(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.warning_amber_rounded,
+                  title: "Send Complaint",
+                  subtitle: "Report suspicious activity",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Sendcomplaintpage(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.warning_amber_rounded,
+                  title: "Reply",
+                  subtitle: "Complaint reply",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => viewcomplaint(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.terminal,
+                  title: "System Logs",
+                  subtitle: "Check intrusion history",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => viewlogs(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.rate_review,
+                  title: "Reviews",
+                  subtitle: "Share your feedback",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Appreviewpage(title: '')),
+                    );
+                  },
+                ),
+                SectionTile(
+                  icon: Icons.rate_review,
+                  title: "Change Password",
+                  subtitle: "",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => change_passwordPage(title: '')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(onPressed: (){
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(),));
+      },child: Icon(Icons.chat),),
+
+    );
+
+  }
+  Future<void> getdata() async {
+    SharedPreferences sh = await SharedPreferences.getInstance();
+    try {
+      // String url = "${sh.getString("url").toString()}/viewNotification/";
+
+
+      String url = sh.getString('url').toString();
+
+      final urls = Uri.parse('$url/viewNotification/');
+
+      String nid="0";
+      if(sh.containsKey("nid")==false) {}
+      else{
+        nid=sh.getString('nid').toString();
+      }
+      // Fluttertoast.showToast(msg:nid);
+
+      var datas = await http
+          .post(urls, body: {
+            'nid': nid ,
+            'lid': sh.getString('lid').toString() ,
+          });
+      var jsondata = json.decode(datas.body);
+      String status = jsondata['status'];
+      print(status);
+      if (status == "ok") {
+        String nid = jsondata['nid'].toString();
+        String message = jsondata['message'];
+        sh.setString('nid',nid);
+        callbackDispatcher(message);
+        // var data = json.decode(datas.body)['data'];
+        // setState(() {
+        //   for (int i = 0; i < data.length; i++) {
+        //     Reminer = (data[i]['Reminder'].toString());
+        //     id = (data[i]['id'].toString());
+        //     Date = (data[i]['Date']);
+        //     Time = (data[i]['Time']);
+        //   }
+        // });
+
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: e.toString());
+      print("Error ------------------- " + e.toString());
+      //there is error during converting file image to base64 encoding.
+    }
+  }
+}
+
+// 🔹 Stat Card
+class StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final Color color;
+
+  const StatCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontFamily: 'monospace',
+              )),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 🔹 Section Tile
+class SectionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const SectionTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.color = _BankingDashboardState.primaryRed,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: color,
+              radius: 26,
+              child: Icon(icon, color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: color,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black45),
+          ],
+        ),
+      ),
+    );
+  }
+}
