@@ -1,0 +1,297 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'chat.dart';
+import 'view_video_new.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'newhome.dart';
+
+void main() {
+  runApp(const ViewHouseApp());
+}
+
+class ViewHouseApp extends StatelessWidget {
+  const ViewHouseApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: viewexpert(title: 'Experts'),
+    );
+  }
+}
+
+class viewexpert extends StatefulWidget {
+  const viewexpert({super.key, required this.title});
+  final String title;
+
+  @override
+  State<viewexpert> createState() => _viewexpertState();
+}
+
+class _viewexpertState extends State<viewexpert> {
+  List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> filteredUsers = [];
+  List<String> nameSuggestions = [];
+  TextEditingController searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    viewUsers("");
+  }
+
+  Future<void> viewUsers(String searchValue) async {
+    try {
+      SharedPreferences sh = await SharedPreferences.getInstance();
+      String urls = sh.getString('url') ?? '';
+      String img = sh.getString('img_url') ?? '';
+      String apiUrl = '$urls/view_expert/';
+
+      var response = await http.post(Uri.parse(apiUrl), body: {});
+      var jsonData = json.decode(response.body);
+
+      if (jsonData['status'] == 'ok') {
+        List<Map<String, dynamic>> tempList = [];
+        for (var item in jsonData['data']) {
+          tempList.add({
+            'id': item['id'],
+            'uid': item['uid'].toString(),
+            'name': item['name'],
+            'email_id': item['email_id'],
+            'dob': item['dob'],
+            'phone_no': item['phone_no'],
+            'place': item['place'],
+            'post': item['post'],
+            'pin_code': item['pin_code'],
+            'qualification': item['qualification'],
+            'experience': item['experience'],
+            'photo': img + item['photo'],
+          });
+        }
+        setState(() {
+          users = tempList;
+          filteredUsers = tempList;
+          nameSuggestions =
+              users.map((e) => e['name'].toString()).toSet().toList();
+        });
+      }
+    } catch (e) {
+      print("Error fetching users: $e");
+    }
+  }
+
+  void filterSearch(String value) {
+    setState(() {
+      filteredUsers = users
+          .where((user) =>
+          user['name'].toString().toLowerCase().contains(value.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const BankingDashboard()),
+          );
+          return false;
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Color(0xFF2A4B7C),
+            title: const Text("Expert Directory",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            centerTitle: true,
+            elevation: 5,
+          ),
+          body: Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: TextField(
+                  controller: searchController,
+                  onChanged: filterSearch,
+                  decoration: InputDecoration(
+                    hintText: "Search experts by name...",
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF2A4B7C)),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+
+              // List of Experts
+              Expanded(
+                child: filteredUsers.isEmpty
+                    ? const Center(
+                    child: Text("No experts found",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black54)))
+                    : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = filteredUsers[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.redAccent.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: 3,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 35,
+                                    backgroundColor: Color(0xFF2A4B7C),
+                                    child: CircleAvatar(
+                                      radius: 32,
+                                      backgroundImage:
+                                      NetworkImage(user['photo']),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(user['name'],
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18)),
+                                        Text(user['qualification'],
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black54)),
+                                        Text(user['experience'],
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey)),
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                runSpacing: 6,
+                                spacing: 12,
+                                children: [
+                                  _infoChip(Icons.email, user['uid']),
+                                  _infoChip(Icons.phone, user['phone_no']),
+                                  _infoChip(Icons.location_on,
+                                      "${user['place']} - ${user['pin_code']}"),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF2A4B7C),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                            BorderRadius.circular(30)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 18, vertical: 10),
+                                      ),
+                                      onPressed: () async {
+                                        SharedPreferences sh =
+                                        await SharedPreferences.getInstance();
+                                        sh.setString(
+                                            'eid', user['id'].toString());
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  User_View_New_Video()),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.play_circle,
+                                          color: Colors.white),
+                                      label: const Text("View Videos",
+                                          style:
+                                          TextStyle(color: Colors.white)),
+                                    ),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF2A4B7C),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                            BorderRadius.circular(30)),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 18, vertical: 10),
+                                      ),
+                                      onPressed: () async {
+                                        SharedPreferences sh =
+                                        await SharedPreferences.getInstance();
+                                        sh.setString(
+                                            'aid', user['uid'].toString());
+                                        sh.setString(
+                                            'agrname', user['name'].toString());
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MyChatPage(title: '',)),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.chat,
+                                          color: Colors.white),
+                                      label: const Text("Chat",
+                                          style:
+                                          TextStyle(color: Colors.white)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+              ),
+            ],
+          ),
+        ));
+  }
+
+  Widget _infoChip(IconData icon, String text) {
+    return Chip(
+      avatar: Icon(icon, color: Color(0xFF2A4B7C), size: 18),
+      label: Text(text,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+      backgroundColor: Colors.grey[100],
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    );
+  }
+}
