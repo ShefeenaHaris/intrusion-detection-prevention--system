@@ -1,0 +1,255 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+import 'login.dart';
+// import 'home.dart';
+// import 'newhome.dart';
+
+
+void main() {
+  runApp( viewuploadcontent(title: '',));
+}
+
+class viewuploadcontent extends StatefulWidget {
+  const viewuploadcontent({super.key, required this.title});
+
+  final String title;
+  @override
+  State<viewuploadcontent> createState() => _viewuploadcontentState();
+
+}
+class _viewuploadcontentState extends State<viewuploadcontent> {
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nametextController = TextEditingController();
+  final TextEditingController _emailtextController = TextEditingController();
+  final TextEditingController _phonenotextController = TextEditingController();
+  final TextEditingController _placetextController = TextEditingController();
+  final TextEditingController _posttextController = TextEditingController();
+  final TextEditingController _pintextController = TextEditingController();
+  final TextEditingController _passwordtextController = TextEditingController();
+
+  File? _selectedImage;
+  Future<void> _chooseImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+    else {
+      Fluttertoast.showToast(msg: "No image selected");
+    }
+  }
+
+  Future<void> _sendData() async {
+    String uname = _nametextController.text;
+    String uemail = _emailtextController.text;
+    String uphone = _phonenotextController.text;
+    String uplace = _placetextController.text;
+    String upost = _posttextController.text;
+    String upin = _pintextController.text;
+    String upassword = _passwordtextController.text;
+
+    SharedPreferences sh = await SharedPreferences.getInstance();
+    String? url = sh.getString('url');
+
+    if (url == null) {
+      Fluttertoast.showToast(msg: "Server URL not found.");
+      return;
+    }
+
+    final uri = Uri.parse('$url/user_signup/');
+    var request = http.MultipartRequest('POST', uri);
+    request.fields['uname'] = uname;
+    request.fields['uemail'] = uemail;
+    request.fields['uphoneno'] = uphone;
+    request.fields['uplace'] = uplace;
+    request.fields['upost'] = upost;
+    request.fields['upin'] = upin;
+    request.fields['upassword'] = upassword;
+
+    if (_selectedImage != null) {
+      request.files.add(await http.MultipartFile.fromPath('photo', _selectedImage!.path));
+    }
+
+    try {
+      var response = await request.send();
+      var respStr = await response.stream.bytesToString();
+      var data = jsonDecode(respStr);
+
+      if (response.statusCode == 200 && data['status'] == 'ok') {
+        Fluttertoast.showToast(msg: "Submitted successfully.");
+      } else {
+        Fluttertoast.showToast(msg: "Submission failed.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => const BankingDashboard()),
+        // );
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.title),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                _selectedImage != null
+                    ? Image.file(_selectedImage!, height: 150)
+                    : const Text("No Image Selected"),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _chooseImage,
+                  child: const Text("Choose Image"),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _nametextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _emailtextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
+                      return 'Enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _phonenotextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your Phone Number',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Phone number is required';
+                    }
+                    if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                      return 'Enter a valid 10-digit phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _placetextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your Place',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Place is required';
+                    }
+                    return null;
+                  },
+                ), const SizedBox(height: 20),
+                TextFormField(
+                  controller: _posttextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your post',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'post is required';
+                    }
+                    return null;
+                  },
+                ),const SizedBox(height: 20),
+                TextFormField(
+                  controller: _pintextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your pin',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'pin is required';
+                    }
+                    return null;
+                  },
+                ),const SizedBox(height: 20),
+                TextFormField(
+                  controller: _passwordtextController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Your password ',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'passwords is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _sendData();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MyLoginPage(title: '',)),
+                      );
+                    } else {
+                      Fluttertoast.showToast(msg: "Please fix errors in the form");
+                    }
+                  },
+                  child: const Text("Submit"),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
